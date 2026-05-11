@@ -42,6 +42,16 @@ python -c "import torch; print(torch.__version__); print(torch.cuda.is_available
 
 Expected result: `torch.cuda.is_available()` should print `True`.
 
+## Timing Estimate
+
+The runner shows a progress bar with recent speed, full-run average speed, and ETA. For a quick estimate before running everything:
+
+```powershell
+python run_pipeline.py --limit 10 --max-gpu-memory 5GiB
+```
+
+Use the printed seconds/image to estimate a larger dataset. For example, 20 seconds/image means about 5.6 hours for 1000 images.
+
 ## Smoke Test
 
 Close Ollama and other GPU-heavy apps first if possible. Then run 2 images:

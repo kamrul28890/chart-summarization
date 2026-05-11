@@ -1,11 +1,13 @@
 import argparse
 import os
 import zipfile
+from time import perf_counter
 from pathlib import Path
 
 import torch
 import pandas as pd
 from PIL import Image
+from tqdm.auto import tqdm
 from transformers import (
     AutoModelForSeq2SeqLM,
     AutoProcessor,
@@ -87,6 +89,12 @@ def parse_args():
         type=int,
         default=250,
         help="Max tokens for each Qwen chart summary.",
+    )
+    parser.add_argument(
+        "--timing-window",
+        type=int,
+        default=10,
+        help="Number of recent images used for the progress-bar speed estimate.",
     )
     return parser.parse_args()
 
@@ -204,6 +212,7 @@ def translate_en_to_bn(tokenizer, model, text: str) -> str:
 
 
 def main():
+    run_started = perf_counter()
     args = parse_args()
     input_root = resolve_input(args.input)
     image_paths = find_images(input_root, args.limit)
@@ -221,10 +230,13 @@ def main():
         trans_tokenizer, trans_model = load_translation_model()
 
     rows = []
+    durations = []
     partial_csv = output_dir / "partial_summaries.csv"
 
-    for index, image_path in enumerate(image_paths, start=1):
-        print(f"[{index}/{len(image_paths)}] {image_path.name}")
+    progress = tqdm(image_paths, desc="Summarizing charts", unit="img")
+    for index, image_path in enumerate(progress, start=1):
+        item_started = perf_counter()
+        progress.set_postfix_str(image_path.name[:32])
         with Image.open(image_path) as img:
             image = img.convert("RGB")
             english_summary = generate_summary(
@@ -245,6 +257,21 @@ def main():
         )
         pd.DataFrame(rows).to_csv(partial_csv, index=False, encoding="utf-8-sig")
 
+        elapsed = perf_counter() - item_started
+        durations.append(elapsed)
+        recent = durations[-max(1, args.timing_window) :]
+        avg_recent = sum(recent) / len(recent)
+        avg_total = sum(durations) / len(durations)
+        remaining = len(image_paths) - index
+        eta_minutes = (avg_recent * remaining) / 60
+        progress.set_postfix(
+            {
+                "last_s": f"{elapsed:.1f}",
+                "avg_s": f"{avg_total:.1f}",
+                "eta_min": f"{eta_minutes:.1f}",
+            }
+        )
+
     final_dataset = pd.DataFrame(rows)
     output_file = output_dir / "testset_summaries_1.xlsx"
     counter = 1
@@ -252,8 +279,11 @@ def main():
         counter += 1
         output_file = output_dir / f"testset_summaries_{counter}.xlsx"
     final_dataset.to_excel(output_file, index=False)
+    total_minutes = (perf_counter() - run_started) / 60
+    avg_seconds = sum(durations) / len(durations) if durations else 0
     print(f"Saved {output_file}")
     print(f"Partial CSV: {partial_csv}")
+    print(f"Processed {len(rows)} images in {total_minutes:.1f} minutes ({avg_seconds:.1f} seconds/image).")
 
 
 if __name__ == "__main__":

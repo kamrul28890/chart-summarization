@@ -4,4 +4,5 @@ openpyxl>=3.1
 pandas>=2.0
 pillow>=10.0
 torchao>=0.10
+tqdm>=4.66
 transformers>=4.49
