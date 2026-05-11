@@ -47,7 +47,7 @@ Expected result: `torch.cuda.is_available()` should print `True`.
 The runner shows a progress bar with recent speed, full-run average speed, and ETA. For a quick estimate before running everything:
 
 ```powershell
-python run_pipeline.py --limit 10 --max-gpu-memory 5GiB
+python run_pipeline.py --limit 10 --no-translate
 ```
 
 Use the printed seconds/image to estimate a larger dataset. For example, 20 seconds/image means about 5.6 hours for 1000 images.
@@ -57,7 +57,13 @@ Use the printed seconds/image to estimate a larger dataset. For example, 20 seco
 Close Ollama and other GPU-heavy apps first if possible. Then run 2 images:
 
 ```powershell
-python run_pipeline.py --limit 2 --max-gpu-memory 5GiB
+python run_pipeline.py --limit 2 --no-translate
+```
+
+The default run uses 4-bit quantization and forces Qwen onto GPU 0. If it fails with CUDA out-of-memory, close more GPU apps and retry. If needed, lower the image token budget:
+
+```powershell
+python run_pipeline.py --limit 2 --no-translate --qwen-max-pixels 401408
 ```
 
 ## FP16 Test
@@ -88,17 +94,17 @@ outputs\testset_summaries_1.xlsx
 The local ZIP contains 200 images. After the smoke test works:
 
 ```powershell
-python run_pipeline.py --max-gpu-memory 5GiB
+python run_pipeline.py
 ```
 
 If VRAM is mostly free after closing apps, try:
 
 ```powershell
-python run_pipeline.py --max-gpu-memory 6GiB
+python run_pipeline.py --qwen-max-pixels 802816
 ```
 
 If the run hits CUDA out-of-memory, lower it:
 
 ```powershell
-python run_pipeline.py --max-gpu-memory 4GiB
+python run_pipeline.py --qwen-max-pixels 401408
 ```

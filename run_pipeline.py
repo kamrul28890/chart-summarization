@@ -69,14 +69,26 @@ def parse_args():
     )
     parser.add_argument(
         "--max-gpu-memory",
-        default="5GiB",
-        help="Per-GPU memory budget for accelerate device_map auto. Increase if VRAM is free.",
+        default="7GiB",
+        help="Per-GPU memory budget for --device-map auto. Used mainly for FP16 CPU-offload tests.",
     )
     parser.add_argument(
         "--device-map",
         choices=["auto", "cuda"],
-        default="auto",
+        default="cuda",
         help="Use auto for GPU/CPU placement or cuda to force the full Qwen model onto GPU 0.",
+    )
+    parser.add_argument(
+        "--qwen-min-pixels",
+        type=int,
+        default=128 * 28 * 28,
+        help="Minimum visual token pixel budget for Qwen image preprocessing.",
+    )
+    parser.add_argument(
+        "--qwen-max-pixels",
+        type=int,
+        default=768 * 28 * 28,
+        help="Maximum visual token pixel budget for Qwen image preprocessing. Lower this to reduce VRAM.",
     )
     parser.add_argument(
         "--translate",
@@ -128,7 +140,20 @@ def find_images(folder: Path, limit: int = 0) -> list[Path]:
     return images
 
 
-def load_qwen_model(quantization: str, max_gpu_memory: str, device_map: str):
+def format_cuda_memory() -> str:
+    if not torch.cuda.is_available():
+        return "CUDA unavailable"
+    free, total = torch.cuda.mem_get_info(0)
+    return f"{free / 1024**3:.2f} GiB free / {total / 1024**3:.2f} GiB total"
+
+
+def load_qwen_model(
+    quantization: str,
+    max_gpu_memory: str,
+    device_map: str,
+    qwen_min_pixels: int,
+    qwen_max_pixels: int,
+):
     if not torch.cuda.is_available():
         raise RuntimeError(
             "CUDA is not available in this Python environment. Install a CUDA PyTorch wheel first."
@@ -136,8 +161,8 @@ def load_qwen_model(quantization: str, max_gpu_memory: str, device_map: str):
 
     processor = AutoProcessor.from_pretrained(
         VL_MODEL_NAME,
-        min_pixels=256 * 28 * 28,
-        max_pixels=1024 * 28 * 28,
+        min_pixels=qwen_min_pixels,
+        max_pixels=qwen_max_pixels,
     )
 
     kwargs = {
@@ -159,7 +184,19 @@ def load_qwen_model(quantization: str, max_gpu_memory: str, device_map: str):
             bnb_4bit_compute_dtype=torch.float16,
         )
 
-    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(VL_MODEL_NAME, **kwargs)
+    try:
+        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(VL_MODEL_NAME, **kwargs)
+    except ValueError as exc:
+        if "dispatched on the CPU or the disk" in str(exc):
+            raise RuntimeError(
+                "Qwen did not fit in the configured GPU memory budget, so Transformers tried "
+                "to split 4-bit modules onto CPU/disk, which bitsandbytes rejects. Close GPU-heavy "
+                "apps such as Ollama/browser/video players, then retry the default 4-bit run. "
+                "Current CUDA memory: "
+                f"{format_cuda_memory()}. For a slow FP16 CPU-offload test, use "
+                "`--quantization none --device-map auto --limit 1`."
+            ) from exc
+        raise
     model.eval()
     return processor, model
 
@@ -221,10 +258,18 @@ def main():
 
     print(f"Found {len(image_paths)} images under {input_root}")
     print(f"CUDA device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'not available'}")
+    print(f"CUDA memory before loading Qwen: {format_cuda_memory()}")
     print(f"Qwen quantization: {args.quantization}")
     print(f"Qwen device map: {args.device_map}")
+    print(f"Qwen pixel budget: min={args.qwen_min_pixels}, max={args.qwen_max_pixels}")
 
-    processor, qwen_model = load_qwen_model(args.quantization, args.max_gpu_memory, args.device_map)
+    processor, qwen_model = load_qwen_model(
+        args.quantization,
+        args.max_gpu_memory,
+        args.device_map,
+        args.qwen_min_pixels,
+        args.qwen_max_pixels,
+    )
     trans_tokenizer = trans_model = None
     if args.translate:
         trans_tokenizer, trans_model = load_translation_model()
