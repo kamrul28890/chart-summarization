@@ -50,6 +50,22 @@ Close Ollama and other GPU-heavy apps first if possible. Then run 2 images:
 python run_pipeline.py --limit 2 --max-gpu-memory 5GiB
 ```
 
+## FP16 Test
+
+The notebook used unquantized FP16. To test that path directly on GPU 0:
+
+```powershell
+python run_pipeline_fp16.py
+```
+
+This defaults to one image, no quantization, and `--device-map cuda`. On an RTX 3070 8 GB, this may fail with CUDA out-of-memory. That is useful information: it means FP16 does not fit as a pure GPU run on this card.
+
+To allow CPU offload while still using FP16 weights:
+
+```powershell
+python run_pipeline.py --quantization none --device-map auto --limit 1 --max-gpu-memory 5GiB
+```
+
 Outputs are written to:
 
 ```text

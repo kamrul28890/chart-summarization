@@ -71,6 +71,12 @@ def parse_args():
         help="Per-GPU memory budget for accelerate device_map auto. Increase if VRAM is free.",
     )
     parser.add_argument(
+        "--device-map",
+        choices=["auto", "cuda"],
+        default="auto",
+        help="Use auto for GPU/CPU placement or cuda to force the full Qwen model onto GPU 0.",
+    )
+    parser.add_argument(
         "--translate",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -114,7 +120,7 @@ def find_images(folder: Path, limit: int = 0) -> list[Path]:
     return images
 
 
-def load_qwen_model(quantization: str, max_gpu_memory: str):
+def load_qwen_model(quantization: str, max_gpu_memory: str, device_map: str):
     if not torch.cuda.is_available():
         raise RuntimeError(
             "CUDA is not available in this Python environment. Install a CUDA PyTorch wheel first."
@@ -127,11 +133,15 @@ def load_qwen_model(quantization: str, max_gpu_memory: str):
     )
 
     kwargs = {
-        "device_map": "auto",
         "torch_dtype": torch.float16,
         "attn_implementation": "sdpa",
-        "max_memory": {0: max_gpu_memory, "cpu": "40GiB"},
     }
+
+    if device_map == "cuda":
+        kwargs["device_map"] = {"": 0}
+    else:
+        kwargs["device_map"] = "auto"
+        kwargs["max_memory"] = {0: max_gpu_memory, "cpu": "40GiB"}
 
     if quantization == "bnb4":
         kwargs["quantization_config"] = BitsAndBytesConfig(
@@ -203,8 +213,9 @@ def main():
     print(f"Found {len(image_paths)} images under {input_root}")
     print(f"CUDA device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'not available'}")
     print(f"Qwen quantization: {args.quantization}")
+    print(f"Qwen device map: {args.device_map}")
 
-    processor, qwen_model = load_qwen_model(args.quantization, args.max_gpu_memory)
+    processor, qwen_model = load_qwen_model(args.quantization, args.max_gpu_memory, args.device_map)
     trans_tokenizer = trans_model = None
     if args.translate:
         trans_tokenizer, trans_model = load_translation_model()
