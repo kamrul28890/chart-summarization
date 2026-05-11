@@ -62,6 +62,11 @@ def parse_args():
         help="Optional image limit for smoke tests. Use 0 for all images.",
     )
     parser.add_argument(
+        "--vl-model-name",
+        default=VL_MODEL_NAME,
+        help="Vision-language model name or local path.",
+    )
+    parser.add_argument(
         "--quantization",
         choices=["bnb4", "none"],
         default="bnb4",
@@ -148,6 +153,7 @@ def format_cuda_memory() -> str:
 
 
 def load_qwen_model(
+    vl_model_name: str,
     quantization: str,
     max_gpu_memory: str,
     device_map: str,
@@ -160,7 +166,7 @@ def load_qwen_model(
         )
 
     processor = AutoProcessor.from_pretrained(
-        VL_MODEL_NAME,
+        vl_model_name,
         min_pixels=qwen_min_pixels,
         max_pixels=qwen_max_pixels,
     )
@@ -185,7 +191,7 @@ def load_qwen_model(
         )
 
     try:
-        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(VL_MODEL_NAME, **kwargs)
+        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(vl_model_name, **kwargs)
     except ValueError as exc:
         if "dispatched on the CPU or the disk" in str(exc):
             raise RuntimeError(
@@ -264,6 +270,7 @@ def main():
     print(f"Qwen pixel budget: min={args.qwen_min_pixels}, max={args.qwen_max_pixels}")
 
     processor, qwen_model = load_qwen_model(
+        args.vl_model_name,
         args.quantization,
         args.max_gpu_memory,
         args.device_map,

@@ -29,3 +29,22 @@ Columns:
 - `bangla_summary`: generated Bangla translation
 
 The `outputs/` folder is ignored and used only for local scratch outputs. Final files intended for publication should be copied or promoted into `results/` with descriptive names.
+
+## Qwen2.5-VL 3B FP16 Comparison Run
+
+```text
+qwen2_5_vl_3b_fp16_200_chart_summaries.csv
+qwen2_5_vl_3b_fp16_200_chart_summaries.xlsx
+```
+
+Run configuration:
+
+- Input: `datasets/sample/antu_todo_200_charts.zip`
+- Number of images: 200
+- Vision-language model: `Qwen/Qwen2.5-VL-3B-Instruct`
+- Translation model: `facebook/nllb-200-distilled-600M`
+- Quantization: none, FP16 weights
+- Device map: CUDA GPU 0
+- Image budget: `--qwen-max-pixels 401408`
+- Runtime: 242.2 minutes
+- Average speed: 72.5 seconds/image

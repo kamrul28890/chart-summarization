@@ -2,8 +2,14 @@
 __pycache__/
 *.py[cod]
 
+# Local credentials.
+keys.py
+
 data/
 outputs/
+manifests/
+runs/
+reports/
 
 # Full local dataset copy. This is intentionally not committed because it is
 # about 5.3 GB / 84k files and is too large for normal GitHub repository use.

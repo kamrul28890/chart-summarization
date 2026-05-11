@@ -116,3 +116,4 @@ python run_pipeline.py --input "chart images" --qwen-max-pixels 401408
 - Package a reproducible experiment manifest with model version, prompt, runtime settings, and hardware details.
 
 See `docs/project_status.md` and `docs/technical_outline.md` for a fuller research and engineering overview.
+For full-dataset staged processing, see `docs/staged_workflow.md`.
