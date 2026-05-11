@@ -1,6 +1,6 @@
-# Desktop CUDA Run
+# Desktop CUDA Runbook
 
-This project was converted from the Colab notebook into `run_pipeline.py`.
+This project was converted from the original Colab notebook into `run_pipeline.py`. The notebook now lives under `notebooks/`, while the command-line runner is the main repeatable workflow.
 
 ## Machine Settings Detected
 
@@ -47,7 +47,7 @@ Expected result: `torch.cuda.is_available()` should print `True`.
 The runner shows a progress bar with recent speed, full-run average speed, and ETA. For a quick estimate before running everything:
 
 ```powershell
-python run_pipeline.py --limit 10 --no-translate
+python run_pipeline.py --limit 10 --no-translate --qwen-max-pixels 401408
 ```
 
 Use the printed seconds/image to estimate a larger dataset. For example, 20 seconds/image means about 5.6 hours for 1000 images.
@@ -57,7 +57,7 @@ Use the printed seconds/image to estimate a larger dataset. For example, 20 seco
 Close Ollama and other GPU-heavy apps first if possible. Then run 2 images:
 
 ```powershell
-python run_pipeline.py --limit 2 --no-translate
+python run_pipeline.py --limit 2 --no-translate --qwen-max-pixels 401408
 ```
 
 The default run uses 4-bit quantization and forces Qwen onto GPU 0. If it fails with CUDA out-of-memory, close more GPU apps and retry. If needed, lower the image token budget:
@@ -82,19 +82,21 @@ To allow CPU offload while still using FP16 weights:
 python run_pipeline.py --quantization none --device-map auto --limit 1 --max-gpu-memory 5GiB
 ```
 
-Outputs are written to:
+Scratch outputs are written to:
 
 ```text
 outputs\partial_summaries.csv
 outputs\testset_summaries_1.xlsx
 ```
 
-## Full Test ZIP
+Final outputs that should be kept in the repository should be promoted to `results/` with descriptive names.
 
-The local ZIP contains 200 images. After the smoke test works:
+## Included Sample ZIP
+
+The included sample ZIP is `datasets/sample/antu_todo_200_charts.zip` and contains 200 images. It is the default input for `run_pipeline.py`. After the smoke test works:
 
 ```powershell
-python run_pipeline.py
+python run_pipeline.py --qwen-max-pixels 401408
 ```
 
 If VRAM is mostly free after closing apps, try:
@@ -107,4 +109,12 @@ If the run hits CUDA out-of-memory, lower it:
 
 ```powershell
 python run_pipeline.py --qwen-max-pixels 401408
+```
+
+## Full Local Dataset
+
+The full dataset is expected locally as `chart images/`. It is not committed because it is about 5.3 GB and contains more than 84,000 files.
+
+```powershell
+python run_pipeline.py --input "chart images" --qwen-max-pixels 401408
 ```

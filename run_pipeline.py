@@ -47,7 +47,7 @@ def parse_args():
     )
     parser.add_argument(
         "--input",
-        default="AntuToDo10-20260511T040828Z-3-001.zip",
+        default="datasets/sample/antu_todo_200_charts.zip",
         help="Image folder or ZIP file. Images are searched recursively.",
     )
     parser.add_argument(

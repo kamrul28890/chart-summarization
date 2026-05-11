@@ -5,6 +5,11 @@ __pycache__/
 data/
 outputs/
 
+# Full local dataset copy. This is intentionally not committed because it is
+# about 5.3 GB / 84k files and is too large for normal GitHub repository use.
+chart images/
+chart images.zip
+
 .cache/
 .ipynb_checkpoints/
 
