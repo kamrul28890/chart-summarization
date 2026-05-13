@@ -1,0 +1,18 @@
+{
+  "package": "cluster_qwen25vl_7b_fp16_nllb",
+  "total_images": 84363,
+  "parts": 10,
+  "part_counts": [
+    8437,
+    8437,
+    8437,
+    8436,
+    8436,
+    8436,
+    8436,
+    8436,
+    8436,
+    8436
+  ],
+  "notebook": "cluster_qwen25vl_7b_fp16_nllb\\run_qwen25vl_7b_fp16_nllb_cluster.ipynb"
+}

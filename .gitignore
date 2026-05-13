@@ -15,6 +15,9 @@ reports/
 # about 5.3 GB / 84k files and is too large for normal GitHub repository use.
 chart images/
 chart images.zip
+cluster_qwen25vl_7b_fp16_nllb/dataset_parts/*.zip
+cluster_qwen25vl_7b_fp16_nllb/cluster_work/
+cluster_qwen25vl_7b_fp16_nllb/cluster_outputs/
 
 .cache/
 .ipynb_checkpoints/
